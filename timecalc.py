@@ -131,7 +131,7 @@ class Employee:
 
 		while input_validation == False:
 			# input_time = str(input("# "))
-			text, ok = QInputDialog.getText(None, 'Input Dialog', self.day_dict[day_index] + ' for employee ' + self.name \
+			text, ok = QInputDialog.getText(None, 'Odd entries', self.day_dict[day_index] + ' for employee ' + self.name \
 				+ " has an odd number of entries! \nThe last entry is at " + str(self.times[day_index][-1].time()) + \
 				 ". \nEnter a time to clock this employee out. (note: Should be after the previous entry. Use format 15:23.)")
 			input_time = str(text)
@@ -139,6 +139,8 @@ class Employee:
 				converted_time = datetime.strptime(input_time, '%H:%M')
 				if converted_time > self.times[day_index][-1]:
 					input_validation = True
+				else:
+					QMessageBox.warning(None, "Warning", "Invalid input. Try again.")
 			except:
 				QMessageBox.warning(None, "Warning", "Invalid input. Try again.")
 		
@@ -149,8 +151,7 @@ class Employee:
 		break_time = timedelta(0)
 		for index, time_duo in enumerate(day):
 			if (index + 1) != len(day):
-				break_time += day[index + 1][0] - day[index][1] 
-		print(break_time)
+				break_time += day[index + 1][0] - day[index][1]
 		return break_time
 
 	@staticmethod
@@ -173,7 +174,7 @@ class App(QWidget):
 	def initUI(self):
 		self.layout = QVBoxLayout()
 		
-		self.setGeometry(300, 300, 160, 130)
+		self.setGeometry(300, 300, 230, 100)
 		self.setWindowTitle('Timecard Processor')
 		self.setWindowIcon(QIcon('web.png'))   
 
@@ -212,8 +213,8 @@ class App(QWidget):
 		for employee_data in self.employees_raw:
 			self.employees.append(Employee(employee_data))
 
-		for employee in self.employees:
-			employee.list_time()
+		# for employee in self.employees:
+			# employee.list_time()
 
 		self.write_csv()
 
