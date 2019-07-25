@@ -82,7 +82,7 @@ class Employee:
 					time_duo[1] = datetime(hour=17, minute=0, year=1900, month=1, day=1)
 
 		# calculate total hours and add 30min lunch if worked more than 6hours
-		self.workedtime = timedelta(0);
+		self.workedtime = timedelta(0)
 		for index, day in enumerate(self.time_duos):
 			daily_total = timedelta(0)
 			for time_duo in day:
@@ -132,7 +132,7 @@ class Employee:
 				 ". \nEnter a time to clock this employee out. (note: Should be after the previous entry. Use format 15:23.)")
 			input_time = str(text)
 			try:
-				converted_time = datetime.strptime(input_time, '%H:%M');
+				converted_time = datetime.strptime(input_time, '%H:%M')
 				if converted_time > self.times[day_index][-1]:
 					input_validation = True
 			except:
@@ -237,22 +237,22 @@ class App(QWidget):
 			totals = ["Totals", "", 0, 0, 0, 0, 0, 0, 0, 0]
 
 			for index, employee in enumerate(self.employees):
-				worked_seconds = employee.workedtime.seconds;
+				worked_seconds = employee.workedtime.seconds
 
 				hours = employee.workedtime.days * 24 + employee.workedtime.seconds // 3600
 				minutes = (employee.workedtime.seconds // 60) % 60
 
 				# calculate row
 				calc = [index + 1, \
-						employee.name, \
-						hours, \
-					 	minutes , \
-					 	hours + round(minutes / 60, 2), \
-					 	0, \
-					 	round(employee.sicktime.days * 24 + employee.sicktime.seconds / 3600, 2), \
-					 	round(employee.vacationtime.days * 24 + employee.vacationtime.seconds / 3600, 2), \
-					 	round(employee.overtime.days * 24 + employee.overtime.seconds / 3600, 2), \
-					 	round(employee.totaltime.days * 24 + employee.totaltime.seconds / 3600, 2)]
+					employee.name, \
+					hours, \
+				 	minutes , \
+				 	hours + round(minutes / 60, 2), \
+				 	0, \
+				 	round(employee.sicktime.days * 24 + employee.sicktime.seconds / 3600, 2), \
+				 	round(employee.vacationtime.days * 24 + employee.vacationtime.seconds / 3600, 2), \
+				 	round(employee.overtime.days * 24 + employee.overtime.seconds / 3600, 2), \
+				 	round(employee.totaltime.days * 24 + employee.totaltime.seconds / 3600, 2)]
 
 				csvwriter.writerow(calc)
 
