@@ -24,8 +24,6 @@ class Employee:
 		# set initial values
 		self.times = [[], [], [], [], [], [], []]
 		self.time_duos = [[], [], [], [], [], [], []]
-		self.daily_totals = [timedelta(0), timedelta(0), timedelta(0), \
-							 timedelta(0), timedelta(0), timedelta(0), timedelta(0)]
 
 		self.overtime = timedelta(0)
 		self.vacation_time = timedelta(0)
