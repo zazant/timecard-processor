@@ -81,16 +81,18 @@ class Employee:
 						time_duo[1] - datetime(hour=17, minute=0, year=1900, month=1, day=1)
 					time_duo[1] = datetime(hour=17, minute=0, year=1900, month=1, day=1)
 
-		# calculate total hours and add 30min lunch if worked more than 6hours
+		# calculate total hours and process hours for lunch
 		self.workedtime = timedelta(0)
 		for index, day in enumerate(self.time_duos):
 			daily_total = timedelta(0)
 			for time_duo in day:
 				daily_total += Employee.calc_length(time_duo)
-			if daily_total >= timedelta(hours=8, minutes=0):
-				daily_total = timedelta(hours=8, minutes=30)
-			elif daily_total > timedelta(hours=6):
-				daily_total += timedelta(minutes=30)
+			if len(day) == 1 and daily_total >= timedelta(hours=6):
+				daily_total -= timedelta(minutes=30)
+			elif len(day) > 1 and daily_total >= timedelta(hours=6):
+				break_time = Employee.calc_break_time(day)
+				if break_time < timedelta(minutes=30):
+					daily_total -= (timedelta(minutes=30) - break_time)
 			self.workedtime += daily_total
 
 		# set other hours
@@ -139,6 +141,15 @@ class Employee:
 				QMessageBox.warning(None, "Warning", "Invalid input. Try again.")
 		
 		self.times[day_index].append(converted_time)
+
+	@staticmethod
+	def calc_break_time(day):
+		break_time = timedelta(0)
+		for index, time_duo in enumerate(day):
+			if (index + 1) != len(day):
+				break_time += day[index + 1][0] - day[index][1] 
+		print(break_time)
+		return break_time
 
 	@staticmethod
 	def calc_length(time_duo):
@@ -199,8 +210,8 @@ class App(QWidget):
 		for employee_data in self.employees_raw:
 			self.employees.append(Employee(employee_data))
 
-		# for employee in self.employees:
-			# employee.list_time()
+		for employee in self.employees:
+			employee.list_time()
 
 		self.write_csv()
 
