@@ -29,6 +29,8 @@ class Employee:
 		self.vacation_time = timedelta(0)
 		self.sick_time = timedelta(0)
 
+		self.late_employees = []
+
 		# format name
 		self.name = init_array[1][0].replace("  -  ", "").replace("   ", ", ").title()
 		
