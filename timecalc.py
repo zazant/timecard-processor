@@ -5,10 +5,8 @@ import sys
 import csv
 from datetime import *
 from copy import deepcopy
-from PyQt5.QtWidgets import (QMainWindow, QTextEdit, 
-	QAction, QFileDialog, QApplication, QLabel, QWidget,
-	 QPushButton, QVBoxLayout, QGroupBox, QMessageBox,
-	 QInputDialog)
+from PyQt5.QtWidgets import (QFileDialog, QApplication, QWidget,
+	 QPushButton, QVBoxLayout, QMessageBox, QInputDialog)
 from PyQt5.QtGui import QIcon
 
 class Employee:
@@ -54,7 +52,7 @@ class Employee:
 			for clock_index, clock in enumerate(day):
 				if clock_index % 2 == 0:
 					time_duo = [day[clock_index], day[clock_index + 1]]
-#					print(self.name, " ", day_index, " ", time_duo)
+					# print(self.name, " ", day_index, " ", time_duo)
 					self.time_duos[day_index].append(time_duo)
 
 		# create copy of duos matrix to delete excess duos
@@ -203,8 +201,8 @@ class App(QWidget):
 		for employee_data in self.employees_raw:
 			self.employees.append(Employee(employee_data))
 
-		for employee in self.employees:
-			employee.list_time()
+		# for employee in self.employees:
+			# employee.list_time()
 
 		self.write_csv()
 
