@@ -275,6 +275,14 @@ class App(QWidget):
 		self.layout.addWidget(self.process_button)
 
 		self.setLayout(self.layout)
+
+		open_about = QAction(QIcon('exit.png'), '&About', self)
+        open_about.setStatusTip('About')
+        open_about.triggered.connect(self.quit)
+
+		menubar = self.menuBar()
+        fileMenu = menubar.addMenu('&File')
+        fileMenu.addAction(open_about)
 	
 		self.show()
 
