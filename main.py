@@ -1,6 +1,7 @@
 # truncate all hours between 8:30am and 5:00pm
 # lunch has to be 30min if worked > 6hours
 
+import os
 import sys
 import csv
 import subprocess
@@ -22,7 +23,7 @@ class Employee:
 		6: "Wednesday"
 	}
 
-	def __init__(self, init_array, overtime_employees):
+	def __init__(self, init_array, overtime_employees, extra_break):
 		# set initial values
 		self.times = [[], [], [], [], [], [], []]
 		self.time_duos = [[], [], [], [], [], [], []]
@@ -244,6 +245,8 @@ class App(QWidget):
 		self.current_input = QSettings().value("timecardProcessor/currentInput")
 		self.current_output = QSettings().value("timecardProcessor/currentOutput")
 
+		self.extra_break = False
+
 		self.initUI()
 		
 	def initUI(self):
@@ -296,7 +299,7 @@ class App(QWidget):
 						self.employee_current.append(row)
 
 		for employee_data in self.employees_raw:
-			self.employees.append(Employee(employee_data, overtime_employees))
+			self.employees.append(Employee(employee_data, overtime_employees, self.extra_break))
 
 		# for employee in self.employees:
 		# 	employee.list_time()
@@ -349,7 +352,10 @@ class App(QWidget):
 		self.process_button.clicked.connect(self.process)
 
 	def open_file(self):
-		subprocess.run(['open', self.current_output], check=True)
+		if os.name == "posix":
+			subprocess.run(['open', self.current_output], check=True)
+		else:
+			os.startfile(self.current_output)
 
 	def write_csv(self):
 		with open(self.current_output, mode='w') as outputfile:
