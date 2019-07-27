@@ -7,10 +7,10 @@ import csv
 import subprocess
 from datetime import *
 from copy import deepcopy
-
+from fbs_runtime.application_context.PyQt5 import ApplicationContext
 from PyQt5.QtWidgets import *
-from PyQt5.QtGui import QIcon, QRegExpValidator
-from PyQt5.QtCore import QRegExp, QSettings, QCoreApplication
+from PyQt5.QtGui import *
+from PyQt5.QtCore import *
 
 class Employee:
 	day_dict = {
@@ -34,6 +34,7 @@ class Employee:
 		self.vacation_time = timedelta(0)
 		self.sick_time = timedelta(0)
 		self.holiday_time = timedelta(0)
+		self.extra_time = timedelta(0)
 
 		self.overtime_privilege = False
 
@@ -93,14 +94,27 @@ class Employee:
 		# calculate total hours and process hours for lunch
 		for index, day in enumerate(self.time_duos):
 			daily_total = timedelta(0)
+			break_time = Employee.calc_break_time(day)
 			for time_duo in day:
 				daily_total += Employee.calc_length(time_duo)
 			if len(day) == 1 and daily_total >= timedelta(hours=6):
 				daily_total -= timedelta(minutes=30)
+				break_time += timedelta(minutes=30)
 			elif len(day) > 1 and daily_total >= timedelta(hours=6):
-				break_time = Employee.calc_break_time(day)
 				if break_time < timedelta(minutes=30):
 					daily_total -= (timedelta(minutes=30) - break_time)
+
+			# handle extra break time if true
+			if extra_break and day:
+				# if first clock in is before 8:45
+				if day[0][0] < datetime(year=1900, month=1, day=1, hour=8, minute=45):
+					# calculate 8:45 - first clock
+					time_before_max = datetime(year=1900, month=1, day=1, hour=8, minute=45) - day[0][0]
+					# if daily time is greater or equal to 7:45 and break time is more than 0:30
+					if daily_total >= timedelta(hours=7, minutes=45) and break_time > timedelta(minutes=30):
+						# add the minimum of 8:45 - first clock, break time - 0:30, and 0:15
+						self.extra_time += min(time_before_max, break_time - timedelta(minutes=30), timedelta(minutes=15))
+
 			self.worked_time += daily_total
 
 		# set other hours
@@ -117,6 +131,8 @@ class Employee:
 					elif len(vacation_string) == 9 and vacation_string[0:3] == "PVT":
 						[hours, minutes] = vacation_string[4:].split(":")
 						self.vacation_time += timedelta(hours=int(hours), minutes=int(minutes))
+
+		self.worked_time += self.extra_time
 
 		# set over time if worked more that 40hours
 		if self.worked_time > timedelta(hours=40):
@@ -136,6 +152,7 @@ class Employee:
 		print("worked time: ", self.worked_time)
 		print("sick time: ", self.sick_time)
 		print("vacation time: ", self.vacation_time)
+		print("extra time: ", self.extra_time)
 		print("overtime: ", self.overtime)
 		print("total time: ", self.total_time)
 		print("-----------------")
@@ -183,7 +200,7 @@ class Employee:
 	@staticmethod
 	def calc_length(time_duo):
 		return time_duo[1] - time_duo[0]
-		
+
 class Preferences(QWidget):
 	def __init__(self,parent= None):
 		super().__init__()
@@ -219,6 +236,19 @@ class Preferences(QWidget):
 		grid.addWidget(add, 4, 1)
 		grid.addWidget(clear, 4, 2)
 
+		line = QFrame()
+		line.setGeometry(QRect())
+		line.setFrameShape(QFrame.HLine)
+		line.setFrameShadow(QFrame.Sunken)
+
+		grid.addWidget(line, 5, 1, 1, 2)
+
+		self.extra_time_checkbox = QCheckBox('Enable extra 15 minutes at lunch policy?')
+		self.extra_time_checkbox.setChecked(bool(self.settings.value("timecardProcessor/extraBreak", False)))
+		self.extra_time_checkbox.clicked.connect(self.extra_time_action)
+
+		grid.addWidget(self.extra_time_checkbox, 6, 1, 1, 2)
+
 	def add_action(self):
 		name_input_str = self.name_input.text().title()
 		if name_input_str:
@@ -234,6 +264,9 @@ class Preferences(QWidget):
 		self.local_names = []
 		self.settings.setValue("timecardProcessor/overtimeEmployees", [])
 
+	def extra_time_action(self):
+		self.settings.setValue("timecardProcessor/extraBreak", self.extra_time_checkbox.isChecked())
+
 class App(QWidget):
 	def __init__(self):
 		super().__init__()
@@ -244,8 +277,6 @@ class App(QWidget):
 
 		self.current_input = QSettings().value("timecardProcessor/currentInput")
 		self.current_output = QSettings().value("timecardProcessor/currentOutput")
-
-		self.extra_break = False
 
 		self.initUI()
 		
@@ -275,14 +306,6 @@ class App(QWidget):
 		self.layout.addWidget(self.process_button)
 
 		self.setLayout(self.layout)
-
-		open_about = QAction(QIcon('exit.png'), '&About', self)
-        open_about.setStatusTip('About')
-        open_about.triggered.connect(self.quit)
-
-		menubar = self.menuBar()
-        fileMenu = menubar.addMenu('&File')
-        fileMenu.addAction(open_about)
 	
 		self.show()
 
@@ -292,8 +315,8 @@ class App(QWidget):
 		self.process_button.setEnabled(False)
 		self.process_button.setText("Working...")
 
-		loaded_overtime_employees = QSettings().value("timecardProcessor/overtimeEmployees")
-		overtime_employees = (loaded_overtime_employees if loaded_overtime_employees else [])
+		overtime_employees = QSettings().value("timecardProcessor/overtimeEmployees", [])
+		extra_break = QSettings().value("timecardProcessor/extraBreak", False)
 
 		with open(self.current_input) as csvfile:
 			csvreader = csv.reader(csvfile, skipinitialspace=True, \
@@ -307,7 +330,7 @@ class App(QWidget):
 						self.employee_current.append(row)
 
 		for employee_data in self.employees_raw:
-			self.employees.append(Employee(employee_data, overtime_employees, self.extra_break))
+			self.employees.append(Employee(employee_data, overtime_employees, extra_break))
 
 		# for employee in self.employees:
 		# 	employee.list_time()
@@ -328,6 +351,7 @@ class App(QWidget):
 		self.preferences = Preferences()
 		self.preferences.setWindowTitle('Preferences')
 		self.preferences.show()
+		self.reset_process_button()
 
 	def show_file_dialog(self):
 		self.reset_process_button()
@@ -419,6 +443,10 @@ if __name__ == '__main__':
 	QCoreApplication.setOrganizationDomain("https://zazant.com")
 	QCoreApplication.setApplicationName("Timecard Processor")
 
+	appctxt = ApplicationContext()
+
 	app = QApplication(sys.argv)
 	ex = App()
-	sys.exit(app.exec_())
+	
+	exit_code = appctxt.app.exec_()
+	sys.exit(exit_code)
