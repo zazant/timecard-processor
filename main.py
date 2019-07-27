@@ -265,7 +265,8 @@ class Preferences(QWidget):
 		self.settings.setValue("timecardProcessor/overtimeEmployees", [])
 
 	def extra_time_action(self):
-		self.settings.setValue("timecardProcessor/extraBreak", self.extra_time_checkbox.isChecked())
+		current_value = self.settings.value("timecardProcessor/extraBreak", False)
+		self.settings.setValue("timecardProcessor/extraBreak", not current_value)
 
 class App(QWidget):
 	def __init__(self):
