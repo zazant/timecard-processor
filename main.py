@@ -244,7 +244,7 @@ class Preferences(QWidget):
 		grid.addWidget(line, 5, 1, 1, 2)
 
 		self.extra_time_checkbox = QCheckBox('Enable extra 15 minutes at lunch policy?')
-		self.extra_time_checkbox.setChecked(bool(self.settings.value("timecardProcessor/extraBreak", False)))
+		self.extra_time_checkbox.setChecked(self.settings.value("timecardProcessor/extraBreak", False, type=bool))
 		self.extra_time_checkbox.clicked.connect(self.extra_time_action)
 
 		grid.addWidget(self.extra_time_checkbox, 6, 1, 1, 2)
@@ -265,8 +265,7 @@ class Preferences(QWidget):
 		self.settings.setValue("timecardProcessor/overtimeEmployees", [])
 
 	def extra_time_action(self):
-		current_value = bool(self.settings.value("timecardProcessor/extraBreak", False))
-		self.settings.setValue("timecardProcessor/extraBreak", not current_value)
+		self.settings.setValue("timecardProcessor/extraBreak", self.extra_time_checkbox.isChecked())
 
 class App(QWidget):
 	def __init__(self):
@@ -317,7 +316,7 @@ class App(QWidget):
 		self.process_button.setText("Working...")
 
 		overtime_employees = QSettings().value("timecardProcessor/overtimeEmployees", [])
-		extra_break = QSettings().value("timecardProcessor/extraBreak", False)
+		extra_break = QSettings().value("timecardProcessor/extraBreak", False, type=bool)
 
 		with open(self.current_input) as csvfile:
 			csvreader = csv.reader(csvfile, skipinitialspace=True, \
