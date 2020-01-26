@@ -6,8 +6,6 @@ echo -------------------------------
 echo Type in "Timecard Processor" when asked for the app name, and "Anton Zakharov" when asked for the author. 
 echo Press enter when asked for the Mac Bundle Identifier.
 echo -------------------------------
-fbs startproject
-copy main.py "src\main\python"
 fbs freeze
 fbs installer
 mkdir "target\Timecard Processor\Installer (optional)"

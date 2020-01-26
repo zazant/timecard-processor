@@ -1,0 +1,6 @@
+altgraph==0.17
+fbs==0.8.4
+macholib==1.14
+PyInstaller==3.6
+PyQt5==5.9.2
+sip==4.19.8
