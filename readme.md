@@ -1,8 +1,6 @@
 # Timecard Processor
 
-Have you found yourself in need of processing .csv files of timecard data from an obscure proprietary timecard program according to a set of rules that probably only applies in Massachusetts? If so, you're in luck! 
-
-Introducing: the Timecard Processor. 
+Processes .csv files of timecard data from an obscure timecard program.
 
 ## Screenshots
 
@@ -16,4 +14,4 @@ Run `windows-build.bat` and follow the instructions. Note: make sure you've sati
 
 ## What program is this for?
 
-[Econsoft Timecard Manager Pro](http://www.econsoft.com/). Make sure you export your timecard data as .csv files!
+[Econsoft Timecard Manager Pro](http://www.econsoft.com/). Make sure you export your timecard data as .csv files.
