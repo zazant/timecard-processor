@@ -76,19 +76,27 @@ class Employee:
 				if time_duo[1] < datetime(hour=8, minute=30, year=1900, month=1, day=1):
 					self.time_duos[day_index].remove(time_duo)
 
+				overtime_today = False
+				if self.overtime_privilege:
+					overtime_today = overtime_employees[self.name][day_index]
+
 				# get rid of duos that start and end after 5 unless employee has overtime privilege
-				if not self.overtime_privilege and time_duo[0] > datetime(hour=17, minute=0, year=1900, month=1, day=1):
+				if not overtime_today and time_duo[0] > datetime(hour=17, minute=0, year=1900, month=1, day=1):
 					self.time_duos[day_index].remove(time_duo)
 		
 		# truncate duos
-		for day in self.time_duos:
+		for day_index, day in enumerate(self.time_duos):
 			for time_duo in day:
 				# set first clock to 8:30am if before
 				if time_duo[0] < datetime(hour=8, minute=30, year=1900, month=1, day=1):
 					time_duo[0] = datetime(hour=8, minute=30, year=1900, month=1, day=1)
 				
+				overtime_today = False
+				if self.overtime_privilege:
+					overtime_today = overtime_employees[self.name][day_index]
+
 				# set last duo to end at 5pm unless employee has overtime privilege
-				if not self.overtime_privilege and time_duo[1] > datetime(hour=17, minute=0, year=1900, month=1, day=1):
+				if not overtime_today and time_duo[1] > datetime(hour=17, minute=0, year=1900, month=1, day=1):
 					time_duo[1] = datetime(hour=17, minute=0, year=1900, month=1, day=1)
 
 		# calculate total hours and process hours for lunch
@@ -121,7 +129,7 @@ class Employee:
 		for row in init_array:
 			if row[0] == "Sick Leave":
 				self.sick_time = timedelta(hours=int(row[1]), minutes=int(row[2]))
-			if row[0] == "Holiday Time":
+			if row[0] == "Holiday Pay":
 				self.holiday_time += timedelta(hours=int(row[1]), minutes=int(row[2]))
 			if len(row) == 9:
 				for vacation_string in row:
@@ -208,13 +216,15 @@ class Preferences(QWidget):
 		title = QLabel("Employees with overtime privileges:")
 
 		self.settings = QSettings()
-		self.local_names = []
+		self.local_names = {}
 
 		self.lst = QListWidget()
 
+		self.lst.itemClicked.connect(self.current_list_action)
+
 		if self.settings.value("timecardProcessor/overtimeEmployees"):
 			self.lst.addItems([str(i) for i in self.settings.value("timecardProcessor/overtimeEmployees")])
-			self.local_names = [str(i) for i in self.settings.value("timecardProcessor/overtimeEmployees")]
+			self.local_names = self.settings.value("timecardProcessor/overtimeEmployees")
 
 		add = QPushButton('Add', clicked=self.add_action)
 		clear = QPushButton('Clear', clicked=self.clear_action)
@@ -249,23 +259,112 @@ class Preferences(QWidget):
 
 		grid.addWidget(self.extra_time_checkbox, 6, 1, 1, 2)
 
+		self.sunday = QCheckBox('S')
+		self.monday = QCheckBox('M')
+		self.tuesday = QCheckBox('T')
+		self.wednesday = QCheckBox('W')
+		self.thursday = QCheckBox('T')
+		self.friday = QCheckBox('F')
+		self.saturday = QCheckBox('S')
+
+		self.sunday.setDisabled(True)
+		self.monday.setDisabled(True)
+		self.tuesday.setDisabled(True)
+		self.wednesday.setDisabled(True)
+		self.thursday.setDisabled(True)
+		self.friday.setDisabled(True)
+		self.saturday.setDisabled(True)
+
+		self.sunday.clicked.connect(lambda: self.overtime_day_action(3))
+		self.monday.clicked.connect(lambda: self.overtime_day_action(4))
+		self.tuesday.clicked.connect(lambda: self.overtime_day_action(5))
+		self.wednesday.clicked.connect(lambda: self.overtime_day_action(6))
+		self.thursday.clicked.connect(lambda: self.overtime_day_action(0))
+		self.friday.clicked.connect(lambda: self.overtime_day_action(1))
+		self.saturday.clicked.connect(lambda: self.overtime_day_action(2))
+
+		self.sunday.day = 3
+		self.monday.day = 4
+		self.tuesday.day = 5
+		self.wednesday.day = 6
+		self.thursday.day = 0
+		self.friday.day = 1
+		self.saturday.day = 2
+
+		num = QGridLayout()
+
+		num.addWidget(self.sunday, 7, 1)
+		num.addWidget(self.monday, 7, 2)
+		num.addWidget(self.tuesday, 7, 3)
+		num.addWidget(self.wednesday, 7, 4)
+		num.addWidget(self.thursday, 7, 5)
+		num.addWidget(self.friday, 7, 6)
+		num.addWidget(self.saturday, 7, 7)
+
+		grid.addLayout(num, 7, 1, 1, 2)
+
 	def add_action(self):
 		name_input_str = self.name_input.text().title()
 		if name_input_str:
 			it = QListWidgetItem(name_input_str)
 			self.lst.addItem(it)
-			self.local_names.append(name_input_str)
+			self.local_names[name_input_str] = [1,1,1,1,1,1,1]
 			self.settings.setValue("timecardProcessor/overtimeEmployees", self.local_names)
 			self.lst.scrollToItem(it)
 		self.name_input.setText("")
 
 	def clear_action(self):
 		self.lst.clear()
-		self.local_names = []
-		self.settings.setValue("timecardProcessor/overtimeEmployees", [])
+		self.local_names = {}
+		self.settings.setValue("timecardProcessor/overtimeEmployees", {})
+
+		self.sunday.setDisabled(True)
+		self.monday.setDisabled(True)
+		self.tuesday.setDisabled(True)
+		self.wednesday.setDisabled(True)
+		self.thursday.setDisabled(True)
+		self.friday.setDisabled(True)
+		self.saturday.setDisabled(True)
+
+		self.sunday.setChecked(False)
+		self.monday.setChecked(False)
+		self.tuesday.setChecked(False)
+		self.wednesday.setChecked(False)
+		self.thursday.setChecked(False)
+		self.friday.setChecked(False)
+		self.saturday.setChecked(False)
 
 	def extra_time_action(self):
 		self.settings.setValue("timecardProcessor/extraBreak", self.extra_time_checkbox.isChecked())
+
+	def overtime_day_action(self, day):
+		c = self.local_names[self.lst.currentItem().text()][day]
+
+		if c == 0:
+			self.local_names[self.lst.currentItem().text()][day] = 1
+		else:
+			self.local_names[self.lst.currentItem().text()][day] = 0
+
+		self.settings.setValue("timecardProcessor/overtimeEmployees", self.local_names)
+
+		self.current_list_action()
+
+	def current_list_action(self):
+		self.sunday.setDisabled(False)
+		self.monday.setDisabled(False)
+		self.tuesday.setDisabled(False)
+		self.wednesday.setDisabled(False)
+		self.thursday.setDisabled(False)
+		self.friday.setDisabled(False)
+		self.saturday.setDisabled(False)
+
+		self.sunday.setChecked(self.local_names[self.lst.currentItem().text()][3])
+		self.monday.setChecked(self.local_names[self.lst.currentItem().text()][4])
+		self.tuesday.setChecked(self.local_names[self.lst.currentItem().text()][5])
+		self.wednesday.setChecked(self.local_names[self.lst.currentItem().text()][6])
+		self.thursday.setChecked(self.local_names[self.lst.currentItem().text()][0])
+		self.friday.setChecked(self.local_names[self.lst.currentItem().text()][1])
+		self.saturday.setChecked(self.local_names[self.lst.currentItem().text()][2])
 
 class App(QWidget):
 	def __init__(self):
@@ -315,7 +414,7 @@ class App(QWidget):
 		self.process_button.setEnabled(False)
 		self.process_button.setText("Working...")
 
-		overtime_employees = QSettings().value("timecardProcessor/overtimeEmployees", [])
+		overtime_employees = QSettings().value("timecardProcessor/overtimeEmployees", {})
 		extra_break = QSettings().value("timecardProcessor/extraBreak", False, type=bool)
 
 		with open(self.current_input) as csvfile:
@@ -403,14 +502,14 @@ class App(QWidget):
 				minutes = (employee.worked_time.seconds // 60) % 60
 
 				# calculate row
-				calc = [index + 1, \
-					("*" if employee.overtime_privilege else "") + employee.name, \
-					hours + round(minutes / 60, 2), \
-					round(employee.holiday_time.days * 24 + employee.holiday_time.seconds / 3600, 2), \
-					round(employee.sick_time.days * 24 + employee.sick_time.seconds / 3600, 2), \
-					round(employee.vacation_time.days * 24 + employee.vacation_time.seconds / 3600, 2), \
-					round(employee.overtime.days * 24 + employee.overtime.seconds / 3600, 2), \
-					round(employee.total_time.days * 24 + employee.total_time.seconds / 3600, 2)]
+				calc = [index + 1,
+						("*" if employee.overtime_privilege else "") + employee.name,
+						hours + round(minutes / 60, 2),
+						round(employee.holiday_time.days * 24 + employee.holiday_time.seconds / 3600, 2),
+						round(employee.sick_time.days * 24 + employee.sick_time.seconds / 3600, 2),
+						round(employee.vacation_time.days * 24 + employee.vacation_time.seconds / 3600, 2),
+						round(employee.overtime.days * 24 + employee.overtime.seconds / 3600, 2),
+						round(employee.total_time.days * 24 + employee.total_time.seconds / 3600, 2)]
 
 				calc_strings = []
 				for number in calc:
