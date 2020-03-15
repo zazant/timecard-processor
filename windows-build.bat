@@ -1,6 +1,5 @@
 @echo off
 echo -------------------------------
-rd /s /q "windows-target"
 git pull
 echo -------------------------------
 echo Type in "Timecard Processor" when asked for the app name, and "Anton Zakharov" when asked for the author. 
@@ -10,12 +9,8 @@ fbs freeze
 fbs installer
 mkdir "target\Timecard Processor\Installer (optional)"
 move "target\Timecard ProcessorSetup.exe" "target\Timecard Processor\Installer (optional)\Timecard Processor Setup.exe"
-mkdir "windows-target"
-move "target\Timecard Processor" ".\windows-target\"
-mkdir "windows-target\Timecard Processor\Source"
-copy main.py "windows-target\Timecard Processor\Source"
-rd /s /q target
-rd /s /q src
+mkdir "target\Timecard Processor\Source"
+copy "src\main\python\main.py" "target\Timecard Processor\Source"
 echo -------------------------------
 echo Done!
 echo -------------------------------
