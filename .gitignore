@@ -1,3 +1,5 @@
 /venv/
 in.csv
 output.csv
+target
+.idea
