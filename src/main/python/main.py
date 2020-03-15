@@ -1,6 +1,7 @@
 # truncate all hours between 8:30am and 5:00pm
 # lunch has to be 30min if worked > 6hours
 
+
 import os
 import sys
 import csv
@@ -11,6 +12,8 @@ from fbs_runtime.application_context.PyQt5 import ApplicationContext
 from PyQt5.QtWidgets import *
 from PyQt5.QtGui import *
 from PyQt5.QtCore import *
+
+version = "v1.1.0"
 
 class Employee:
 	day_dict = {
@@ -39,9 +42,9 @@ class Employee:
 		self.overtime_privilege = False
 
 		# format name
-		self.name = init_array[1][0].replace("  -  ", "").replace("   ", ", ").title()
+		self.name = init_array[1][0].replace("	-  ", "").replace("	  ", ", ").title()
 
-		# add overtime privileges if available  
+		# add overtime privileges if available	
 		if self.name in overtime_employees:
 			self.overtime_privilege = True
 		
@@ -81,7 +84,10 @@ class Employee:
 					overtime_today = overtime_employees[self.name][day_index]
 
 				# get rid of duos that start and end after 5 unless employee has overtime privilege
+				# else remove duos after 7
 				if not overtime_today and time_duo[0] > datetime(hour=17, minute=0, year=1900, month=1, day=1):
+					self.time_duos[day_index].remove(time_duo)
+				elif overtime_today and time_duo[0] > datetime(hour=19, minute=0, year=1900, month=1, day=1):
 					self.time_duos[day_index].remove(time_duo)
 		
 		# truncate duos
@@ -96,8 +102,11 @@ class Employee:
 					overtime_today = overtime_employees[self.name][day_index]
 
 				# set last duo to end at 5pm unless employee has overtime privilege
+				# else remove duos after 8
 				if not overtime_today and time_duo[1] > datetime(hour=17, minute=0, year=1900, month=1, day=1):
 					time_duo[1] = datetime(hour=17, minute=0, year=1900, month=1, day=1)
+				elif overtime_today and time_duo[1] > datetime(hour=19, minute=0, year=1900, month=1, day=1):
+					time_duo[1] = datetime(hour=19, minute=0, year=1900, month=1, day=1)
 
 		# calculate total hours and process hours for lunch
 		for index, day in enumerate(self.time_duos):
@@ -302,6 +311,11 @@ class Preferences(QWidget):
 		num.addWidget(self.saturday, 7, 7)
 
 		grid.addLayout(num, 7, 1, 1, 2)
+		
+		grid.addWidget(line, 8, 1, 1, 2)
+		
+		versionWidget = QLabel(version)
+		grid.addWidget(versionWidget, 9, 1, 1, 2)
 
 	def add_action(self):
 		name_input_str = self.name_input.text().title()
@@ -420,19 +434,29 @@ class App(QWidget):
 		with open(self.current_input) as csvfile:
 			csvreader = csv.reader(csvfile, skipinitialspace=True, \
 				delimiter=",", quoting=csv.QUOTE_NONE)
+			
+			past_row_dashes = False
+			
 			for row in csvreader:
 				if any(field.strip() for field in row):
 					if row[0] == "-----------------------------------------":
 						self.employees_raw.append(self.employee_current)
 						self.employee_current = []
+						past_row_dashes = True
+					elif (row[0] == "monday" or row[0] == "tuesday" or row[0] == "wednesday" or \
+							row[0] == "thursday" or row[0] == "friday" or row[0] == "saturday" or \
+							row[0] == "sunday") and past_row_dashes:
+						self.employee_current = []
+						past_row_dashes = False
 					else:
 						self.employee_current.append(row)
+						past_row_dashes = False
 
 		for employee_data in self.employees_raw:
 			self.employees.append(Employee(employee_data, overtime_employees, extra_break))
 
 		# for employee in self.employees:
-		# 	employee.list_time()
+		#	employee.list_time()
 
 		self.write_csv()
 
