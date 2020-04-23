@@ -13,7 +13,7 @@ from PyQt5.QtWidgets import *
 from PyQt5.QtGui import *
 from PyQt5.QtCore import *
 
-version = "v1.1.0"
+version = "v1.1.1"
 
 class Employee:
 	day_dict = {
@@ -42,7 +42,7 @@ class Employee:
 		self.overtime_privilege = False
 
 		# format name
-		self.name = init_array[1][0].replace("	-  ", "").replace("	  ", ", ").title()
+		self.name = init_array[1][0].replace("  -  ", "").replace("   ", ", ").title()
 
 		# add overtime privileges if available	
 		if self.name in overtime_employees:
@@ -123,14 +123,20 @@ class Employee:
 
 			# handle extra break time if true
 			if extra_break and day:
-				# if first clock in is before 8:45
-				if day[0][0] < datetime(year=1900, month=1, day=1, hour=8, minute=45):
+				# if first clock in is before 8:45 and daily time is greater or equal to 7:45
+				if day[0][0] < datetime(year=1900, month=1, day=1, hour=8, minute=45) and daily_total >= timedelta(hours=7, minutes=45):
 					# calculate 8:45 - first clock
 					time_before_max = datetime(year=1900, month=1, day=1, hour=8, minute=45) - day[0][0]
-					# if daily time is greater or equal to 7:45 and break time is more than 0:30
-					if daily_total >= timedelta(hours=7, minutes=45) and break_time > timedelta(minutes=30):
-						# add the minimum of 8:45 - first clock, break time - 0:30, and 0:15
-						self.extra_time += min(time_before_max, break_time - timedelta(minutes=30), timedelta(minutes=15))
+					extra_time = time_before_max
+					daily_total += time_before_max
+					
+					# if no overtime and daily total is greater than 8 hours shorten
+					if not self.overtime_privilege and daily_total > timedelta(hours=8):
+						extra_time = extra_time - (daily_total - timedelta(hours=8))
+						daily_total = timedelta(hours=8)
+					
+					# add to all extra time
+					self.extra_time =+ extra_time
 
 			self.worked_time += daily_total
 
@@ -158,7 +164,9 @@ class Employee:
 
 		self.total_time = self.worked_time + self.vacation_time + self.sick_time
 
-		if self.overtime_privilege:
+		if not self.overtime_privilege:
+			self.overtime = timedelta(0)
+		else:
 			self.total_time += self.overtime
 
 	def list_time(self):
@@ -455,8 +463,8 @@ class App(QWidget):
 		for employee_data in self.employees_raw:
 			self.employees.append(Employee(employee_data, overtime_employees, extra_break))
 
-		# for employee in self.employees:
-		#	employee.list_time()
+		for employee in self.employees:
+			employee.list_time()
 
 		self.write_csv()
 
