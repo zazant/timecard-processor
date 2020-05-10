@@ -13,7 +13,7 @@ from PyQt5.QtWidgets import *
 from PyQt5.QtGui import *
 from PyQt5.QtCore import *
 
-version = "v1.1.1"
+version = "v1.2.1"
 
 class Employee:
 	day_dict = {
@@ -26,7 +26,7 @@ class Employee:
 		6: "Wednesday"
 	}
 
-	def __init__(self, init_array, overtime_employees, extra_break):
+	def __init__(self, init_array, overtime_employees, extra_break, overtime_till_seven):
 		# set initial values
 		self.times = [[], [], [], [], [], [], []]
 		self.time_duos = [[], [], [], [], [], [], []]
@@ -84,10 +84,10 @@ class Employee:
 					overtime_today = overtime_employees[self.name][day_index]
 
 				# get rid of duos that start and end after 5 unless employee has overtime privilege
-				# else remove duos after 7
+				# else remove duos after 7 unless overtime till seven not on
 				if not overtime_today and time_duo[0] > datetime(hour=17, minute=0, year=1900, month=1, day=1):
 					self.time_duos[day_index].remove(time_duo)
-				elif overtime_today and time_duo[0] > datetime(hour=19, minute=0, year=1900, month=1, day=1):
+				elif overtime_today and time_duo[0] > datetime(hour=19, minute=0, year=1900, month=1, day=1) and overtime_till_seven:
 					self.time_duos[day_index].remove(time_duo)
 		
 		# truncate duos
@@ -102,10 +102,10 @@ class Employee:
 					overtime_today = overtime_employees[self.name][day_index]
 
 				# set last duo to end at 5pm unless employee has overtime privilege
-				# else remove duos after 8
+				# else remove duos after 7 unless overtime till seven not on
 				if not overtime_today and time_duo[1] > datetime(hour=17, minute=0, year=1900, month=1, day=1):
 					time_duo[1] = datetime(hour=17, minute=0, year=1900, month=1, day=1)
-				elif overtime_today and time_duo[1] > datetime(hour=19, minute=0, year=1900, month=1, day=1):
+				elif overtime_today and time_duo[1] > datetime(hour=19, minute=0, year=1900, month=1, day=1) and overtime_till_seven:
 					time_duo[1] = datetime(hour=19, minute=0, year=1900, month=1, day=1)
 
 		# calculate total hours and process hours for lunch
@@ -120,23 +120,40 @@ class Employee:
 			elif len(day) > 1 and daily_total >= timedelta(hours=6):
 				if break_time < timedelta(minutes=30):
 					daily_total -= (timedelta(minutes=30) - break_time)
+					break_time = timedelta(minutes=30)
 
 			# handle extra break time if true
 			if extra_break and day:
 				# if first clock in is before 8:45 and daily time is greater or equal to 7:45
 				if day[0][0] < datetime(year=1900, month=1, day=1, hour=8, minute=45) and daily_total >= timedelta(hours=7, minutes=45):
 					# calculate 8:45 - first clock
-					time_before_max = datetime(year=1900, month=1, day=1, hour=8, minute=45) - day[0][0]
-					extra_time = time_before_max
-					daily_total += time_before_max
+					minutes_clocked_in_before_eight_forty_five = datetime(year=1900, month=1, day=1, hour=8, minute=45) - day[0][0]
+					print(self.name)
 					
+					print("minutes before 8:45: " + str(minutes_clocked_in_before_eight_forty_five))
+					
+					minutes_over_thirty_during_break = break_time - timedelta(minutes=30)
+					print("minutes over thirty during break " + str(minutes_over_thirty_during_break))
+					
+					if not self.overtime_privilege:
+						minutes_clocked_out_before_five_pm = datetime(year=1900, month=1, day=1, hour=17, minute=0) - day[-1][1]
+					else:
+						minutes_clocked_out_before_five_pm = timedelta(0)
+					print("minutes clocked out before five pm: " + str(minutes_clocked_out_before_five_pm))
+					
+					extra_time = min(minutes_clocked_in_before_eight_forty_five, \
+										(timedelta(minutes=15) - minutes_clocked_in_before_eight_forty_five) + minutes_over_thirty_during_break + minutes_clocked_out_before_five_pm)
+					print("extra_time: " + str(extra_time))
+					
+					daily_total += extra_time
+						
 					# if no overtime and daily total is greater than 8 hours shorten
-					if not self.overtime_privilege and daily_total > timedelta(hours=8):
-						extra_time = extra_time - (daily_total - timedelta(hours=8))
-						daily_total = timedelta(hours=8)
+					#if not self.overtime_privilege and daily_total > timedelta(hours=8):
+					#	extra_time = extra_time - (daily_total - timedelta(hours=8))
+					#	daily_total = timedelta(hours=8)
 					
 					# add to all extra time
-					self.extra_time =+ extra_time
+					self.extra_time += extra_time
 
 			self.worked_time += daily_total
 
@@ -155,8 +172,6 @@ class Employee:
 						[hours, minutes] = vacation_string[4:].split(":")
 						self.vacation_time += timedelta(hours=int(hours), minutes=int(minutes))
 
-		self.worked_time += self.extra_time
-
 		# set over time if worked more that 40hours
 		if self.worked_time > timedelta(hours=40):
 			self.overtime = self.worked_time - timedelta(hours=40)
@@ -164,9 +179,7 @@ class Employee:
 
 		self.total_time = self.worked_time + self.vacation_time + self.sick_time
 
-		if not self.overtime_privilege:
-			self.overtime = timedelta(0)
-		else:
+		if self.overtime_privilege:
 			self.total_time += self.overtime
 
 	def list_time(self):
@@ -197,7 +210,7 @@ class Employee:
 
 		while input_validation == False:
 			# input_time = str(input("# "))
-			text, ok = QInputDialog.getText(None, 'Odd entries', self.day_dict[day_index] + ' for employee ' + self.name \
+			text, ok = QInputDialog.getText(None, 'Odd Entries', self.day_dict[day_index] + ' for employee ' + self.name \
 				+ " has an odd number of entries! \nThe last entry is at " + str(self.times[day_index][-1].time()) + \
 				 ". \nEnter a time to clock this employee out. (note: Should be after the previous entry. Use format 15:23.)")
 			if not ok:
@@ -320,10 +333,15 @@ class Preferences(QWidget):
 
 		grid.addLayout(num, 7, 1, 1, 2)
 		
-		grid.addWidget(line, 8, 1, 1, 2)
+		self.overtime_seven_checkbox = QCheckBox('End overtime at 7 PM?')
+		self.overtime_seven_checkbox.setChecked(self.settings.value("timecardProcessor/overtimeTillSeven", True, type=bool))
+		self.overtime_seven_checkbox.clicked.connect(self.overtime_seven_action)
+		grid.addWidget(self.overtime_seven_checkbox, 8, 1, 1, 2)
+		
+		grid.addWidget(line, 9, 1, 1, 2)
 		
 		versionWidget = QLabel(version)
-		grid.addWidget(versionWidget, 9, 1, 1, 2)
+		grid.addWidget(versionWidget, 10, 1, 1, 2)
 
 	def add_action(self):
 		name_input_str = self.name_input.text().title()
@@ -370,6 +388,9 @@ class Preferences(QWidget):
 		self.settings.setValue("timecardProcessor/overtimeEmployees", self.local_names)
 
 		self.current_list_action()
+		
+	def overtime_seven_action(self):
+		self.settings.setValue("timecardProcessor/overtimeTillSeven", self.overtime_seven_checkbox.isChecked())
 
 	def current_list_action(self):
 		self.sunday.setDisabled(False)
@@ -438,6 +459,7 @@ class App(QWidget):
 
 		overtime_employees = QSettings().value("timecardProcessor/overtimeEmployees", {})
 		extra_break = QSettings().value("timecardProcessor/extraBreak", False, type=bool)
+		overtime_till_seven = QSettings().value("timecardProcessor/overtimeTillSeven", True, type=bool)
 
 		with open(self.current_input) as csvfile:
 			csvreader = csv.reader(csvfile, skipinitialspace=True, \
@@ -461,7 +483,7 @@ class App(QWidget):
 						past_row_dashes = False
 
 		for employee_data in self.employees_raw:
-			self.employees.append(Employee(employee_data, overtime_employees, extra_break))
+			self.employees.append(Employee(employee_data, overtime_employees, extra_break, overtime_till_seven))
 
 		for employee in self.employees:
 			employee.list_time()
@@ -481,6 +503,7 @@ class App(QWidget):
 	def show_preferences_dialog(self):
 		self.preferences = Preferences()
 		self.preferences.setWindowTitle('Preferences')
+		self.preferences.setWindowModality(Qt.ApplicationModal)
 		self.preferences.show()
 		self.reset_process_button()
 
