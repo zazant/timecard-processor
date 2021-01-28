@@ -13,7 +13,7 @@ from PyQt5.QtWidgets import *
 from PyQt5.QtGui import *
 from PyQt5.QtCore import *
 
-version = "v1.2.1"
+version = "v1.3.1"
 
 class Employee:
 	day_dict = {
@@ -265,12 +265,21 @@ class Preferences(QWidget):
 		grid.addWidget(title, 1, 1, 1, 2)
 		grid.addWidget(self.lst, 2, 1, 1, 2)
 
-		self.name_input = QLineEdit()
-		self.name_input.returnPressed.connect(self.add_action)
-		self.name_input.setPlaceholderText("Doe, John")
-		regexp = QRegExp('([A-Za-z])+(\ [A-Za-z]+)*\, ([A-Za-z])+(\ [A-Za-z]+)*')
-		validator = QRegExpValidator(regexp)
-		self.name_input.setValidator(validator)
+		# self.name_input = QLineEdit()
+		# self.name_input.returnPressed.connect(self.add_action)
+		# self.name_input.setPlaceholderText("Doe, John")
+		# regexp = QRegExp('([A-Za-z])+(\ [A-Za-z]+)*\, ([A-Za-z])+(\ [A-Za-z]+)*')
+		# validator = QRegExpValidator(regexp)
+		# self.name_input.setValidator(validator)
+
+		self.name_input = QComboBox()
+		f = open("employees.txt", "r")
+		for x in f:
+			self.name_input.addItem(x.rstrip())
+		if self.name_input.count() == 0:
+			self.name_input.setDisabled(True)
+		else:
+			self.name_input.setDisabled(False)
 
 		grid.addWidget(self.name_input, 3, 1, 1, 2)
 		grid.addWidget(add, 4, 1)
@@ -344,19 +353,32 @@ class Preferences(QWidget):
 		grid.addWidget(versionWidget, 10, 1, 1, 2)
 
 	def add_action(self):
-		name_input_str = self.name_input.text().title()
+		# name_input_str = self.name_input.text().title()
+		name_input_str = self.name_input.currentText().title()
 		if name_input_str:
 			it = QListWidgetItem(name_input_str)
 			self.lst.addItem(it)
 			self.local_names[name_input_str] = [1,1,1,1,1,1,1]
 			self.settings.setValue("timecardProcessor/overtimeEmployees", self.local_names)
 			self.lst.scrollToItem(it)
-		self.name_input.setText("")
+		# self.name_input.setText("")
+		self.name_input.removeItem(self.name_input.currentIndex())
+		if self.name_input.count() == 0:
+                        self.name_input.setDisabled(True)
 
 	def clear_action(self):
 		self.lst.clear()
 		self.local_names = {}
 		self.settings.setValue("timecardProcessor/overtimeEmployees", {})
+
+		self.name_input.clear()
+		f = open("employees.txt", "r")
+		for x in f:
+			self.name_input.addItem(x.rstrip())
+		if self.name_input.count() == 0:
+			self.name_input.setDisabled(True)
+		else:
+			self.name_input.setDisabled(False)
 
 		self.sunday.setDisabled(True)
 		self.monday.setDisabled(True)

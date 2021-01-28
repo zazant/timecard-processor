@@ -10,7 +10,7 @@ Processes .csv files of timecard data from an obscure timecard program.
 
 ## Building on windows
 
-Run `windows-build.bat` and follow the instructions. Note: make sure you've satisfied the requirements for the [fman build system](https://github.com/mherrmann/fbs-tutorial). This means python versions 3.5 and 3.6, plus NSIS if you're compiling for windows.
+Run `windows-build.bat` and follow the instructions. Note: make sure you've satisfied the requirements for the [fman build system](https://github.com/mherrmann/fbs-tutorial). This means python version 3.5, plus NSIS if you're compiling for windows.
 
 ## What program is this for?
 
